@@ -6,6 +6,7 @@ from config import *
 from audio_capture import AudioCapture
 from vad import SileroVAD
 from noise_detection import noise_filter, calculate_energy
+from mr_pink import detect_wake_word
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -186,9 +187,10 @@ def main():
         print("1. Continuous processing (recommended)")
         print("2. Single-shot processing")
         print("3. Test model")
+        print("4. Test Wake Word Detection")
         print("=" * 40)
         
-        choice = input("Choose mode (1-3): ").strip()
+        choice = input("Choose mode (1-4): ").strip()
         
         if choice == "1":
             ars.run_continuous()
@@ -196,6 +198,8 @@ def main():
             ars.run_single_shot()
         elif choice == "3":
             ars.test_model()
+        elif choice == "4":
+            detect_wake_word()
         else:
             print("Invalid choice. Using continuous mode.")
             ars.run_continuous()
