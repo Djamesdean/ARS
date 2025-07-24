@@ -7,7 +7,7 @@ from audio_capture import AudioCapture
 from vad import SileroVAD
 from noise_detection import noise_filter, calculate_energy
 from mr_pink import detect_wake_word
-
+from vosk_detection import run_vosk_pipeline
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -188,9 +188,10 @@ def main():
         print("2. Single-shot processing")
         print("3. Test model")
         print("4. Test Wake Word Detection")
+        print("5. Test Vosk Keyword Spotting")
         print("=" * 40)
         
-        choice = input("Choose mode (1-4): ").strip()
+        choice = input("Choose mode (1-5): ").strip()
         
         if choice == "1":
             ars.run_continuous()
@@ -200,6 +201,8 @@ def main():
             ars.test_model()
         elif choice == "4":
             detect_wake_word()
+        elif choice == "5":
+            run_vosk_pipeline()
         else:
             print("Invalid choice. Using continuous mode.")
             ars.run_continuous()

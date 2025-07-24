@@ -2,6 +2,7 @@
 """
 Step-by-step debugging script for wake word detection
 """
+
 import numpy as np
 import pyaudio
 import time
