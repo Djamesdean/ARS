@@ -13,3 +13,4 @@ CHANNELS = 1
 VOICE_THRESHOLD = 0.5  # Silero VAD confidence threshold
 ENERGY_THRESHOLD = 100  # Minimum energy to process audio
 
+GROQ_API_KEY = "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" 
