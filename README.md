@@ -6,70 +6,19 @@
 
 Audio-Based Recognition System for
 
-## Project Organization
-
-```
-├── LICENSE            <- Open-source license if one is chosen
-├── Makefile           <- Makefile with convenience commands like `make data` or `make train`
-├── README.md          <- The top-level README for developers using this project.
-├── data
-│   ├── external       <- Data from third party sources.
-│   ├── interim        <- Intermediate data that has been transformed.
-│   ├── processed      <- The final, canonical data sets for modeling.
-│   └── raw            <- The original, immutable data dump.
-│
-├── docs               <- A default mkdocs project; see www.mkdocs.org for details
-│
-├── models             <- Trained and serialized models, model predictions, or model summaries
-│
-├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-│                         the creator's initials, and a short `-` delimited description, e.g.
-│                         `1.0-jqp-initial-data-exploration`.
-│
-├── pyproject.toml     <- Project configuration file with package metadata for 
-│                         ARS and configuration for tools like black
-│
-├── references         <- Data dictionaries, manuals, and all other explanatory materials.
-│
-├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-│   └── figures        <- Generated graphics and figures to be used in reporting
-│
-├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-│                         generated with `pip freeze > requirements.txt`
-│
-├── setup.cfg          <- Configuration file for flake8
-│
-└── ARS   <- Source code for use in this project.
-    │
-    ├── __init__.py             <- Makes ARS a Python module
-    │
-    ├── config.py               <- Store useful variables and configuration
-    │
-    ├── dataset.py              <- Scripts to download or generate data
-    │
-    ├── features.py             <- Code to create features for modeling
-    │
-    ├── modeling                
-    │   ├── __init__.py 
-    │   ├── predict.py          <- Code to run model inference with trained models          
-    │   └── train.py            <- Code to train models
-    │
-    └── plots.py                <- Code to create visualizations
-```
-
---------
 
 ## Table of Contents
 1. [Project Overview](#project-overview)
 2. [Architecture & Approach](#architecture--approach)
 3. [File Structure](#file-structure)
 4. [Detailed Code Analysis](#detailed-code-analysis)
-5. [Development Journey & Issues](#development-journey--issues)
-6. [Troubleshooting](#troubleshooting)
-7. [Wake Word Detection Approaches](#wake-word-detection-approaches)
-8. [Command Detection Approaches
+5. [Wake Word Detection Approaches](#wake-word-detection-approaches)
+6. [Command Detection Approaches
 ](#command-detection-approaches)
-9. [My Approach](#my-approach)
+7. [My Approach](#my-approach)
+8. [Wake word detection (Picovoice)](#wake-word-detection-picovoice)
+9. [Wake word detection (Vosk)](#wake-word-detection-vosk)
+10. [Speech transcription (whisper)](#speech-transcription-whisper)
 
 
 ---
@@ -452,7 +401,7 @@ def process_audio_chunk(self, audio_data: np.ndarray) -> dict:
 
 ---
 
-## Development Journey & Issues
+## Issues
 
 ### Phase 1: Initial Implementation Problems
 
@@ -566,33 +515,6 @@ else:
     base_model.load_state_dict(loaded_state_dict)
     self.model = base_model
 ```
---- 
-
-### Key Architectural Decisions and Rationale
-
-#### Decision 1: Single VAD Model
-**Rationale**: Simplicity and consistency over marginal performance gains
-- Eliminated complex switching logic
-- Provided uniform behavior across environments
-- Reduced debugging complexity
-
-#### Decision 2: Energy Pre-filtering
-**Rationale**: Optimize performance without sacrificing accuracy
-- Skip VAD processing for silent audio
-- Significant CPU savings in quiet environments
-- No impact on voice detection accuracy
-
-#### Decision 3: torch.hub Caching
-**Rationale**: Balance between offline capability and maintenance overhead
-- Automatic model management
-- No manual file handling
-- Cross-project compatibility
-
-#### Decision 4: 512-sample Chunks
-**Rationale**: Model requirements override performance preferences
-- Silero VAD strict requirement
-- 32ms latency acceptable for real-time applications
-- Optimal model performance
 
 ---
 
@@ -668,93 +590,7 @@ else:
 2024-01-15 10:40:15,457 - __main__ - INFO - Model test successful!
 ```
 
-
-## Troubleshooting
-
-### Common Issues and Solutions
-
-#### 1. Model Loading Issues
-
-**Issue**: `Failed to load Silero VAD model`
-```
-ERROR:vad:Failed to load Silero VAD model: HTTP Error 403: Forbidden
-```
-
-**Causes & Solutions**:
-- **Internet connectivity**: Check network connection
-- **Firewall/proxy**: Configure firewall to allow PyTorch Hub access
-- **GitHub rate limiting**: Wait and retry later
-- **Cached corruption**: Clear cache and retry
-  ```bash
-  rm -rf ~/.cache/torch/hub/snakers4_silero-vad_master
-  python main.py
-  ```
-
-**Issue**: `ModuleNotFoundError: No module named 'torch'`
-
-**Solutions**:
-```bash
-# Verify virtual environment activation
-which python  # Should point to your virtual environment
-
-# Reinstall PyTorch
-pip install torch torchaudio
-
-# Check installation
-python -c "import torch; print(torch.__version__)"
-```
-
-#### 2. Audio Device Issues
-
-**Issue**: `OSError: [Errno -9996] Invalid input device`
-
-**Diagnosis**:
-```python
-import pyaudio
-p = pyaudio.PyAudio()
-print("Available audio devices:")
-for i in range(p.get_device_count()):
-    info = p.get_device_info_by_index(i)
-    print(f"Device {i}: {info['name']} - {info['maxInputChannels']} input channels")
-p.terminate()
-```
-
-**Solutions**:
-- **macOS**: Grant microphone permission in System Preferences
-- **Linux**: Check ALSA/PulseAudio configuration
-- **Windows**: Verify microphone drivers and permissions
-- **All platforms**: Use specific device index:
-  ```python
-  # In audio_capture.py
-  stream = self.p.open(
-      input_device_index=1,  # Use specific device
-      # ... other parameters
-  )
-  ```
-
-**Issue**: `No audio input detected`
-
-**Diagnosis steps**:
-```bash
-# Test microphone
-python -c "
-import pyaudio
-import numpy as np
-p = pyaudio.PyAudio()
-stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=1024)
-data = stream.read(1024)
-audio = np.frombuffer(data, dtype=np.int16)
-print(f'Audio level: {np.mean(np.abs(audio))}')
-stream.close()
-p.terminate()
-"
-```
-
-**Solutions**:
-- Increase microphone gain/volume
-- Check microphone connection
-- Test with different audio applications
-- Verify audio device permissions
+---
 
 ## Key Achievements
 
@@ -900,6 +736,8 @@ Example code for integrating the wake word detection:
 
 The ARS system was run, and Option 4 was selected to test the wake word detection functionality. Upon detection of the wake word, the system was set to trigger an appropriate response.
 
+--- 
+
 ## Wake word Detection (VOSK)
 
 ### Objective
@@ -961,4 +799,88 @@ Extracted and imported to:
         ├── conf/
         ├── graph/
         └── ivector/
+```
+---
+
+## Speech Transcription (Whisper)
+
+### How the Audio Processing Works:
+
+- Audio Capture:  capture_audio() function returns a numpy array of audio samples
+- WAV File Creation: The save_temp_wav() function converts the numpy - array to a proper WAV file:
+    - Sets it to mono (1 channel)
+    - Uses 16-bit PCM encoding (2 bytes per sample)
+    - Uses your configured sample rate
+
+
+- API Upload: The WAV file is sent to Groq's API as a multipart form upload
+- Transcription: Groq processes the audio and returns the text
+- Cleanup: The temporary file is deleted
+
+### Pipeline Features:
+#### 1. Proper Audio Duration Handling:
+```python
+def capture_audio_for_duration(duration_seconds: float = 3.0)
+```
+
+- capture_audio() only gets 512 samples (0.032 seconds)
+- This function captures multiple chunks and concatenates them
+- Default is 3 seconds, which is good for Whisper
+
+##### 2. Integration with Your Existing Code:
+```python
+pythonfrom audio_capture import AudioCapture
+from noise_detection import noise_filter, calculate_energy
+```
+
+- Uses AudioCapture class for capturing audio
+- Uses noise_filter() for audio cleanup 
+- Uses calculate_energy() to check audio quality
+
+#### 3. Proper Error Handling:
+
+- API timeouts (30 seconds)
+- File cleanup (removes temporary WAV files)
+- Audio quality checks (energy levels)
+- Empty audio detection
+
+#### 4. Smart Audio Processing:
+```python
+# Check if audio has sufficient energy (not just silence)
+energy = calculate_energy(audio_data)
+if energy < 100:  # Threshold for minimum energy
+    logger.warning(f"Audio energy too low ({energy:.2f}), probably silence")
+    return None
+```
+- Filters out silence or very quiet audio
+- Saves API calls on useless audio
+
+### What Each Function Does:
+
+#### WhisperTranscriber class:
+
+- Handles all API communication with Groq
+- Saves audio as WAV files
+- Manages file cleanup
+
+#### capture_audio_for_duration():
+
+- Uses your existing AudioCapture to get multiple chunks
+- Applies your noise_filter() for better audio quality
+- Concatenates chunks into one long audio array
+
+#### capture_and_transcribe():
+
+- Main function that combines capture + transcription
+- Checks audio quality before sending to API
+- Returns the transcribed text
+
+### Expected Output When Working:
+```
+Recording for 3.0 seconds (94 chunks)...
+Start speaking now!
+Recording complete! Captured 48128 samples (3.01s)
+Audio energy level: 1547.32
+Transcription successful: 'Hello this is a test'
+✅ Success! Transcription: 'Hello this is a test'
 ```

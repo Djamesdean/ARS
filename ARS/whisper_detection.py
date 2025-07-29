@@ -1,4 +1,4 @@
-# whisper_detection.py
+
 import requests
 import numpy as np
 import wave
@@ -100,62 +100,8 @@ class WhisperTranscriber:
                 except Exception as e:
                     logger.warning(f"Failed to clean up {temp_filename}: {e}")
 
+
 def capture_audio_for_duration(duration_seconds: float = 3.0, apply_filtering: bool = True) -> np.ndarray:
-
-    audio_capture = AudioCapture(
-        sample_rate=SAMPLE_RATE,
-        chunk_size=512,  # Your chunk size
-        channels=1
-    )
-    
-    # Calculate how many chunks we need
-    # Each chunk is 512 samples, at 16kHz that's 512/16000 = 0.032 seconds per chunk
-    chunk_duration = 512 / SAMPLE_RATE
-    num_chunks = int(duration_seconds / chunk_duration)
-    
-    logger.info(f"Recording for {duration_seconds} seconds ({num_chunks} chunks)...")
-    logger.info("Start speaking now!")
-    
-    audio_chunks = []
-    
-    try:
-        for i in range(num_chunks):
-            # Capture one chunk
-            chunk = audio_capture.capture_audio()
-            
-            if len(chunk) > 0:
-                # Apply noise filtering if requested
-                if apply_filtering:
-                    chunk = noise_filter(chunk, SAMPLE_RATE)
-                
-                audio_chunks.append(chunk)
-                
-                # Show progress every 10 chunks (about 0.32 seconds)
-                if (i + 1) % 10 == 0:
-                    elapsed = (i + 1) * chunk_duration
-                    logger.debug(f"Recording progress: {elapsed:.1f}s / {duration_seconds}s")
-            else:
-                logger.warning(f"Empty chunk received at iteration {i}")
-        
-        if audio_chunks:
-            # Concatenate all chunks
-            full_audio = np.concatenate(audio_chunks)
-            logger.info(f"Recording complete! Captured {len(full_audio)} samples ({len(full_audio)/SAMPLE_RATE:.2f}s)")
-            
-            # Check audio quality
-            energy = calculate_energy(full_audio)
-            logger.info(f"Audio energy level: {energy:.2f}")
-            
-            return full_audio
-        else:
-            logger.error("No audio data captured!")
-            return np.array([], dtype=np.int16)
-            
-    except Exception as e:
-        logger.error(f"Error during audio capture: {e}")
-        return np.array([], dtype=np.int16)
-
-def capture_audio_for_duration_continuous(duration_seconds: float = 3.0, apply_filtering: bool = True) -> np.ndarray:
 
     audio_capture = AudioCapture(
         sample_rate=SAMPLE_RATE,
@@ -222,14 +168,14 @@ def capture_audio_for_duration_continuous(duration_seconds: float = 3.0, apply_f
             pass
 
 
-def capture_and_transcribe_continuous(duration_seconds: float = 3.0, apply_filtering: bool = True) -> Optional[str]:
+def capture_and_transcribe(duration_seconds: float = 3.0, apply_filtering: bool = True) -> Optional[str]:
 
     try:
         # Initialize transcriber
         transcriber = WhisperTranscriber()
         
         # Capture audio using continuous method
-        audio_data = capture_audio_for_duration_continuous(duration_seconds, apply_filtering)
+        audio_data = capture_audio_for_duration(duration_seconds, apply_filtering)
         
         if len(audio_data) == 0:
             logger.error("No audio data captured")
@@ -249,7 +195,7 @@ def capture_and_transcribe_continuous(duration_seconds: float = 3.0, apply_filte
         logger.error(f"Error in capture_and_transcribe_continuous: {e}")
         return None
 
-def test_whisper_api_with_debug():
+def test_whisper():
     """Test Whisper API using both methods."""
     print("\n" + "="*50)
     print("WHISPER API TEST (CONTINUOUS METHOD)")
@@ -260,7 +206,7 @@ def test_whisper_api_with_debug():
         print("Recording for 3 seconds - SPEAK NOW!")
         
         # Use continuous capture method
-        transcription = capture_and_transcribe_continuous(duration_seconds=3.0)
+        transcription = capture_and_transcribe(duration_seconds=3.0)
         
         if transcription:
             print(f"✅ Success! Transcription: '{transcription}'")
@@ -275,4 +221,4 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, 
                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     
-    test_whisper_api_with_debug()
+    test_whisper()

@@ -1,8 +1,8 @@
 import vosk
 import json
 import numpy as np
-from vad import SileroVAD  # Assuming Silero VAD is in 'vad.py'
-from noise_detection import noise_filter  # Optional noise filtering from 'noise_detection.py'
+from vad import SileroVAD  
+from noise_detection import noise_filter  
 from audio_capture import AudioCapture
 
 
@@ -28,7 +28,7 @@ def process_vosk_pipeline(audio_data: np.ndarray, silero_vad: SileroVAD, vosk_re
     if voice_prob > 0.5:  # If speech is detected (adjust threshold as needed)
         print("Speech detected!")
         
-        # Step 2: Apply noise filtering (optional but recommended for cleaner audio)
+        # Step 2: Apply noise filtering (
         filtered_audio = noise_filter(audio_data, 16000)  # Adjust sample rate if needed
         
         # Step 3: Pass the detected speech to Vosk for wake word detection
@@ -49,7 +49,7 @@ def process_vosk_pipeline(audio_data: np.ndarray, silero_vad: SileroVAD, vosk_re
 def run_vosk_pipeline():
     # Initialize models
     silero_vad = SileroVAD()
-    vosk_recognizer = VoskKeywordSpotting("models/vosk-model-small-en-us-0.15")  # Adjust this path as needed
+    vosk_recognizer = VoskKeywordSpotting("models/vosk-model-small-en-us-0.15")  
 
     # ✅ Create instance of your audio capture class
     audio_capture = AudioCapture(sample_rate=16000, chunk_size=512, channels=1)

@@ -1,4 +1,4 @@
-# audio_capture.py
+
 import pyaudio
 import numpy as np
 import threading
@@ -11,14 +11,7 @@ logger = logging.getLogger(__name__)
 class AudioCapture:
     def __init__(self, sample_rate: int = 16000, chunk_size: int = 512, 
                  channels: int = 1, format: int = pyaudio.paInt16):
-        """
-        Initialize audio capture.
-        Args:
-            sample_rate: Sampling rate of the microphone
-            chunk_size: Size of each audio chunk captured
-            channels: Number of audio channels
-            format: Audio format (pyaudio format)
-        """
+ 
         self.sample_rate = sample_rate
         self.chunk_size = chunk_size
         self.channels = channels
@@ -36,11 +29,7 @@ class AudioCapture:
         self.p.terminate()
 
     def capture_audio(self) -> np.ndarray:
-        """
-        Capture a single chunk of audio from the microphone.
-        Returns:
-            np.ndarray: Audio data
-        """
+
         try:
             stream = self.p.open(
                 format=self.format,
@@ -102,11 +91,7 @@ class AudioCapture:
             self.is_recording = False
     
     def get_audio_data(self) -> Optional[np.ndarray]:
-        """
-        Get audio data from the queue.
-        Returns:
-            Optional[np.ndarray]: Audio data or None if queue is empty
-        """
+  
         try:
             return self.audio_queue.get_nowait()
         except queue.Empty:

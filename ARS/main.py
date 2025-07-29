@@ -1,4 +1,4 @@
-# main.py
+
 import time
 import logging
 import numpy as np
@@ -8,7 +8,7 @@ from vad import SileroVAD
 from noise_detection import noise_filter, calculate_energy
 from picovoice_detection import detect_wake_word
 from vosk_detection import run_vosk_pipeline
-from whisper_detection import capture_and_transcribe
+from whisper_detection import test_whisper
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class AudioResponseSystem:
     def __init__(self):
-        """Initialize the Audio Response System with Silero VAD only."""
+       
         self.audio_capture = AudioCapture(
             sample_rate=SAMPLE_RATE,
             chunk_size=CHUNK_SIZE,
@@ -35,7 +35,7 @@ class AudioResponseSystem:
         self.noise_profile = None
         
     def calibrate_noise(self, samples: int = 30) -> None:
-        """Calibrate noise profile for better detection."""
+        
         logger.info(f"Calibrating noise profile with {samples} samples...")
         logger.info("Please stay quiet during calibration...")
         
@@ -56,13 +56,7 @@ class AudioResponseSystem:
             logger.warning("No audio data captured during calibration")
     
     def process_audio_chunk(self, audio_data: np.ndarray) -> dict:
-        """
-        Process a single audio chunk using Silero VAD only.
-        Args:
-            audio_data: Raw audio data
-        Returns:
-            dict: Processing results
-        """
+
         if len(audio_data) == 0:
             return {
                 'voice_detected': False,
@@ -71,10 +65,10 @@ class AudioResponseSystem:
                 'timestamp': time.time()
             }
         
-        # Calculate energy level first (quick check)
+        # Calculate energy level first 
         energy = calculate_energy(audio_data)
         
-        # Skip processing if energy is too low (silence)
+        # Skip processing if energy is too low 
         if energy < ENERGY_THRESHOLD:
             return {
                 'voice_detected': False,
@@ -118,13 +112,7 @@ class AudioResponseSystem:
                         logger.info(f"🎤 Voice detected! "
                                   f"Probability: {results['voice_probability']:.2f}, "
                                   f"Energy: {results['energy_level']:.0f}")
-                        
-                        # Here you can add additional processing like:
-                        # - Save audio segment
-                        # - Trigger speech recognition
-                        # - Execute voice commands
-                        # - Send to keyword spotting
-                        
+                 
                 time.sleep(0.01)  # Small delay to prevent excessive CPU usage
                 
         except KeyboardInterrupt:
@@ -160,7 +148,7 @@ class AudioResponseSystem:
                 logger.info("Stopping audio processing...")
 
     def test_model(self) -> None:
-        """Test the Silero VAD model with a single audio capture."""
+        
         logger.info("Testing Silero VAD model...")
         
         try:
@@ -180,50 +168,35 @@ class AudioResponseSystem:
             logger.error(f"Model test failed: {e}")
 
 def main():
-    """Main function to run the Audio Response System."""
-    try:
-        ars = AudioResponseSystem()
+
+    
+    ars = AudioResponseSystem()
         
-        print("\nAudio Response System - Silero VAD Only")
-        print("=" * 40)
-        print("1. Continuous processing (recommended)")
-        print("2. Single-shot processing")
-        print("3. Test model")
-        print("4. Test Wake Word Detection")
-        print("5. Test Vosk Keyword Spotting")
-        print("6. Test Whisper API")
-        print("=" * 40)
+    print("\nProvide your Input")
+    print("=" * 40)
+    print("1. Continuous processing ")
+    print("2. Single-shot processing")
+    print("3. Test Speech detectioon model")
+    print("4. Test Picovoice Wake Word Detection")
+    print("5. Test Vosk wake Word Detection")
+    print("6. Test Whisper API")
+    print("=" * 40)
         
-        choice = input("Choose mode (1-5): ").strip()
+    choice = input("Choose mode (1-6): ").strip()
         
-        if choice == "1":
-            ars.run_continuous()
-        elif choice == "2":
-            ars.run_single_shot()
-        elif choice == "3":
-            ars.test_model()
-        elif choice == "4":
-            detect_wake_word()
-        elif choice == "5":
-            run_vosk_pipeline()
-        elif choice == "6":
-            print("Testing Whisper API...")
-            try:
-                text = capture_and_transcribe()
-                print("Transcription:", text)
-            except Exception as e:
-                print("Error:", e)
-        else:
-            print("Invalid choice. Using continuous mode.")
-            ars.run_continuous()
+    if choice == "1":
+        ars.run_continuous()
+    elif choice == "2":
+        ars.run_single_shot()
+    elif choice == "3":
+        ars.test_model()
+    elif choice == "4":
+        detect_wake_word()
+    elif choice == "5":
+        run_vosk_pipeline()
+    elif choice == "6":
+        test_whisper()
             
-    except Exception as e:
-        logger.error(f"Failed to start Audio Response System: {e}")
-        print(f"\nError: {e}")
-        print("\nCommon solutions:")
-        print("1. Ensure your microphone is working")
-        print("2. Check that the model file exists at: models/silero_vad.pth")
-        print("3. Install required dependencies: pip install torch numpy scipy pyaudio")
 
 if __name__ == "__main__":
     main()

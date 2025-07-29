@@ -1,16 +1,9 @@
-# noise_detection.py
+
 import numpy as np
 import scipy.signal
 
 def noise_filter(audio_data: np.ndarray, sample_rate: int = 16000) -> np.ndarray:
-    """
-    Apply noise reduction using bandpass filtering.
-    Args:
-        audio_data: Audio data to be filtered
-        sample_rate: Sample rate of the audio
-    Returns:
-        np.ndarray: Filtered audio data
-    """
+
     try:
         # Apply bandpass filter to focus on speech frequencies (300-3000 Hz)
         nyquist = 0.5 * sample_rate
@@ -30,24 +23,11 @@ def noise_filter(audio_data: np.ndarray, sample_rate: int = 16000) -> np.ndarray
         return audio_data
 
 def calculate_energy(audio_data: np.ndarray) -> float:
-    """
-    Calculate energy level of audio data.
-    Args:
-        audio_data: Raw audio data
-    Returns:
-        float: Energy level
-    """
+
     return np.mean(np.abs(audio_data.astype(np.float64)))
 
 def spectral_subtraction(audio_data: np.ndarray, noise_profile: np.ndarray) -> np.ndarray:
-    """
-    Apply spectral subtraction for noise reduction.
-    Args:
-        audio_data: Audio signal
-        noise_profile: Noise profile for subtraction
-    Returns:
-        np.ndarray: Denoised audio
-    """
+
     if noise_profile is None or len(noise_profile) == 0:
         return audio_data
         
