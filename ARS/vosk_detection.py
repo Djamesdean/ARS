@@ -4,6 +4,8 @@ import numpy as np
 from vad import SileroVAD  # Assuming Silero VAD is in 'vad.py'
 from noise_detection import noise_filter  # Optional noise filtering from 'noise_detection.py'
 from audio_capture import AudioCapture
+
+
 class VoskKeywordSpotting:
     def __init__(self, model_path="models/vosk-model-small-en-us-0.15"):
         # Initialize Vosk with the downloaded model path
@@ -11,14 +13,7 @@ class VoskKeywordSpotting:
         self.recognizer = vosk.KaldiRecognizer(self.model, 16000)  # Sample rate should match Silero VAD (16kHz)
 
     def process_audio(self, audio_data: np.ndarray) -> str:
-        """
-        Process a chunk of audio data with Vosk to detect wake words.
-        Args:
-            audio_data: The raw audio data in bytes.
-        Returns:
-            Detected transcription text.
-        """
-        # Vosk accepts audio data as raw bytes, so convert the numpy array to bytes
+  
         if self.recognizer.AcceptWaveform(audio_data.tobytes()):
             result = self.recognizer.Result()  # Get result from Vosk recognizer
             result_json = json.loads(result)
