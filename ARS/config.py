@@ -13,4 +13,3 @@ CHANNELS = 1
 VOICE_THRESHOLD = 0.5  # Silero VAD confidence threshold
 ENERGY_THRESHOLD = 100  # Minimum energy to process audio
 
-OPENAI_API_KEY = "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"  
