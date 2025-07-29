@@ -6,16 +6,19 @@ import os
 import time
 import logging
 from typing import Optional
-
 from audio_capture import AudioCapture
 from noise_detection import noise_filter, calculate_energy
-from config import SAMPLE_RATE, GROQ_API_KEY
+from config import SAMPLE_RATE
+from dotenv import load_dotenv  
 
 logger = logging.getLogger(__name__)
 
+load_dotenv()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 class WhisperTranscriber:
+    
     def __init__(self):
-        """Initialize the Whisper transcriber with Groq API."""
+        
         self.api_url = "https://api.groq.com/openai/v1/audio/transcriptions"
         self.model_name = "whisper-large-v3"
         logger.info("WhisperTranscriber initialized with Groq API")
