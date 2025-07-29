@@ -881,7 +881,7 @@ pip install pvporcupine pyaudio
 ### 3. **Training and Downloading the Custom Wake Word Model**
 
 Using Picovoice Console:
-- The custom wake word model was trained using Picovoice's **no-code interface**.
+- The custom wake word model was trained using Picovoice's .
 - The model was downloaded in the form of a `.ppn` file (platform-dependent, such as `linux_x86_64`).
 
 ### 4. **Integrating Wake Word Detection in the ARS**
@@ -900,45 +900,65 @@ Example code for integrating the wake word detection:
 
 The ARS system was run, and Option 4 was selected to test the wake word detection functionality. Upon detection of the wake word, the system was set to trigger an appropriate response.
 
+## Wake word Detection (VOSK)
 
-## Benefits of Using Picovoice Porcupine
+### Objective
 
-1. **Offline Operation**: 
-   - Once the wake word model is downloaded, it can be used entirely offline, ensuring privacy and reducing the need for constant internet connectivity.
+To detect a specific wake word (e.g., `"hello"`) **only after speech is confirmed** by the Silero model, ensuring efficiency and accuracy.
 
-2. **Low Latency**:
-   - Porcupine is optimized for low-latency, making it ideal for real-time applications where quick response times are critical.
 
-3. **Customization**:
-   - You can easily create custom wake words tailored to your application, which provides flexibility in the design and functionality of your ARS.
+#### Vosk
+- **Purpose**: General-purpose offline ASR (Automatic Speech Recognition)
+- **Used for**: Wake word detection via transcription filtering
+- **Model**: `vosk-model-small-en-us-0.15` (40 MB)
 
-4. **Cross-Platform**:
-   - Porcupine supports multiple platforms, including Linux, macOS, Windows, Raspberry Pi, Android, and iOS, making it versatile for different hardware environments.
+#### Silero VAD
+- **Purpose**: Detect if input audio contains speech
+- **Trigger**: Only run Vosk **after** Silero confirms voice activity
 
-5. **Energy-Efficient**:
-   - The Porcupine engine is designed to be resource-efficient, which is beneficial for embedded systems and mobile devices with limited processing power.
 
-6. **No Internet Required (Post Setup)**:
-   - Once the model is trained and downloaded, the system operates without needing an internet connection, providing flexibility in deployment.
+### Pipeline Flow
 
-## Limitations of Picovoice Porcupine
+```
+Microphone Input
+      ↓
+Energy Threshold Check
+      ↓
+Silero VAD (Is this speech?)
+      ↓ YES
+Noise Filter (optional)
+      ↓
+Vosk Transcription (text)
+      ↓
+Check if text contains "hello"
+      ↓
+Trigger Wake Logic
+```
 
-1. **Model Expiry**:
-   - Custom models are valid for 30 days, and after this period, re-training is required. This is primarily relevant for cloud-based deployments, but offline models will still work indefinitely after the initial download.
+### Files Added/Modified
 
-2. **Limited Language Support**:
-   - While Picovoice offers multiple languages, there may be limitations for certain languages or specific accents that could require additional training or model adjustment.
+- `vosk_detection.py` – handles keyword spotting using Vosk
+- `main.py` – allows selecting Vosk as an option
+- `audio_capture.py` – already used for live mic input
+- `vad.py` – Silero voice activity detection logic
 
-3. **Resource Usage**:
-   - Although Porcupine is designed to be lightweight, performance may vary depending on the target device's processing power. High-resource environments (e.g., servers) may not face this issue, but embedded systems may require optimization.
 
-4. **Training Model**:
-   - The initial model training and download require an internet connection. Additionally, training a custom model might be limited to certain languages unless additional data is provided for training.
+### Installation
 
-5. **AccessKey Usage**:
-   - While the AccessKey allows for authentication and authorization, it may be subject to usage limits based on the plan chosen. For commercial applications, a paid plan may be required once your usage exceeds the free tier.
+```bash
+pip install vosk numpy torch pyaudio soundfile
+```
 
-## Conclusion
+Download Vosk model:
+- [https://alphacephei.com/vosk/models](https://alphacephei.com/vosk/models)
 
-By integrating Picovoice Porcupine, the Audio-Based Recognition System can now offer robust wake word detection capabilities, functioning offline and providing a responsive and customizable user experience. This integration enhances privacy, reduces cloud dependency, and ensures that the system works seamlessly across different platforms.
+Extracted and imported to:
 
+```
+|-- models
+    |--models/vosk-model-small-en-us-0.15/
+        ├── am/
+        ├── conf/
+        ├── graph/
+        └── ivector/
+```
