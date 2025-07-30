@@ -1,66 +1,115 @@
 import vosk
 import json
 import numpy as np
+import pyaudio
 from vad import SileroVAD  
-from noise_detection import noise_filter  
-from audio_capture import AudioCapture
+from noise_detection import calculate_energy
 
 
 class VoskKeywordSpotting:
+    """
+    Vosk-based keyword spotting for wake word detection
+    """
     def __init__(self, model_path="models/vosk-model-small-en-us-0.15"):
-        # Initialize Vosk with the downloaded model path
         self.model = vosk.Model(model_path)
-        self.recognizer = vosk.KaldiRecognizer(self.model, 16000)  # Sample rate should match Silero VAD (16kHz)
+        self.recognizer = vosk.KaldiRecognizer(self.model, 16000)
+        print("✅ Vosk model loaded successfully")
 
-    def process_audio(self, audio_data: np.ndarray) -> str:
-  
-        if self.recognizer.AcceptWaveform(audio_data.tobytes()):
-            result = self.recognizer.Result()  # Get result from Vosk recognizer
-            result_json = json.loads(result)
-            return result_json.get("text", "")
-        else:
-            return ""  # Return empty string if no valid result
+    def process_audio(self, audio_bytes):
+        """
+        Process audio bytes and return transcription result
+        Returns: (is_complete, transcribed_text)
+        """
+        try:
+            if self.recognizer.AcceptWaveform(audio_bytes):
+                # Complete sentence detected
+                result = self.recognizer.Result()
+                result_data = json.loads(result)
+                text = result_data.get("text", "")
+                return True, text
+            else:
+                # Partial word/phrase
+                partial = self.recognizer.PartialResult()
+                partial_data = json.loads(partial)
+                text = partial_data.get("partial", "")
+                return False, text
+                
+        except Exception as e:
+            print(f"Error processing audio: {e}")
+            return False, ""
 
-def process_vosk_pipeline(audio_data: np.ndarray, silero_vad: SileroVAD, vosk_recognizer: VoskKeywordSpotting):
-    # Step 1: Use Silero VAD to detect speech
-    voice_prob = silero_vad.detect_voice(audio_data)
-    
-    if voice_prob > 0.5:  # If speech is detected (adjust threshold as needed)
-        print("Speech detected!")
-        
-        # Step 2: Apply noise filtering (
-        filtered_audio = noise_filter(audio_data, 16000)  # Adjust sample rate if needed
-        
-        # Step 3: Pass the detected speech to Vosk for wake word detection
-        transcription = vosk_recognizer.process_audio(filtered_audio)
-        print(f"Vosk transcription: {transcription}")
-        
-        # Step 4: Check if a specific wake word is detected (e.g., "hello")
-        if "hello" in transcription.lower():
-            print("Wake word 'hello' detected!")
-            # Trigger further actions here (e.g., execute command)
-        else:
-            print("No wake word detected.")
-    else:
-        print("No speech detected.")
-
-# Example function to run the Vosk pipeline:
 
 def run_vosk_pipeline():
-    # Initialize models
+    """
+    Main function to run wake word detection using Vosk
+    """
+    print("Starting wake word detection system...")
+    
+    # Initialize components
+    vosk_detector = VoskKeywordSpotting("models/vosk-model-small-en-us-0.15")
     silero_vad = SileroVAD()
-    vosk_recognizer = VoskKeywordSpotting("models/vosk-model-small-en-us-0.15")  
-
-    # ✅ Create instance of your audio capture class
-    audio_capture = AudioCapture(sample_rate=16000, chunk_size=512, channels=1)
-
-    print("🎙️ Listening for speech and wake word... Press Ctrl+C to stop.")
-
+    
+    # Setup audio stream
+    audio = pyaudio.PyAudio()
+    stream = audio.open(
+        format=pyaudio.paInt16,
+        channels=1,
+        rate=16000,
+        input=True,
+        frames_per_buffer=8000
+    )
+    
+    stream.start_stream()
+    print("🎤 Listening for 'hello'... Press Ctrl+C to stop")
+    
+    # Detection variables
+    wake_word_count = 0
+    silence_count = 0
+    
     try:
         while True:
-            audio_data = audio_capture.capture_audio()
-            if len(audio_data) > 0:
-                process_vosk_pipeline(audio_data, silero_vad, vosk_recognizer)
+            # Capture audio chunk
+            audio_data = stream.read(4000)
+            audio_array = np.frombuffer(audio_data, dtype=np.int16)
+            
+            # Check if there's meaningful audio
+            energy = calculate_energy(audio_array)
+            voice_probability = silero_vad.detect_voice(audio_array)
+            
+            # Process speech or loud audio
+            if voice_probability > 0.3 or energy > 100:
+                silence_count = 0
+                
+                # Get transcription from Vosk
+                is_complete, transcription = vosk_detector.process_audio(audio_data)
+                
+                if transcription:
+                    print(f"Heard: '{transcription}'")
+                    
+                    # Check for wake word
+                    if "hello" in transcription.lower():
+                        wake_word_count += 1
+                        print(f"🟢 ACCESS GRANTED - Wake word detected! (#{wake_word_count})")
+                        print("-" * 40)
+                    else:
+                        print("🔴 ACCESS DENIED - Wake word not detected")
+                        
+            else:
+                silence_count += 1
+                
+                # Reset after long silence (optional cleanup)
+                if silence_count > 200:  # About 20 seconds
+                    silence_count = 0
+                    
     except KeyboardInterrupt:
-        print("🛑 Stopped by user.")
+        print(f"\nStopped. Wake words detected: {wake_word_count}")
+    
+    finally:
+        # Cleanup audio resources
+        stream.stop_stream()
+        stream.close()
+        audio.terminate()
 
+
+if __name__ == "__main__":
+    run_vosk_pipeline()
